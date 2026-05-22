@@ -4,10 +4,8 @@ import { useState, useCallback } from "react";
 // limType:
 //   "none"     = Manual, no limit          → Cutting, Fusing
 //   "cutting"  = Limited by Cutting qty    → Checking Input
-//   "auto"     = AUTO-FILLED from Checking Input qty (staff cannot change)
-//                → Power Table, SNLS, Kaja, Button, Bartag, Rope, Buckles,
-//                   Piccoding, Net Folding, Outer Elastic, Trimmer, Panel Ironing
-//   "checking" = Limited by Checking Input → Checking (manual entry, up to checking input)
+//   "auto"     = AUTO-FILLED from Checking Input qty
+//   "checking" = Limited by Checking Input → Checking
 //   "order"    = Limited by Order Qty      → Ironing, Packing
 
 const OPS = [
@@ -31,18 +29,15 @@ const OPS = [
   { id:"packing",      name:"Packing",       limType:"order",    extra:null,           billing:true,  defaultOn:false },
 ];
 
-// Auto ops — these get qty from Checking Input automatically
-const AUTO_OPS = OPS.filter(op => op.limType === 'auto').map(op => op.id);
-
 const buildDefaultOps = () => {
   const ops = {};
-  OPS.forEach(op => { if (op.defaultOn) ops[op.id] = { on: true, rate: 0, cont: "", mult: 1 }; });
+  OPS.forEach(op => { if (op.defaultOn) ops[op.id] = { on: true, rate: 0, mult: 1 }; });
   return ops;
 };
 
 const ensureCheckingInput = orders => orders.map(o => ({
   ...o,
-  ops: { checkingInput: { on: true, rate: 0, cont: "", mult: 1 }, ...o.ops }
+  ops: { checkingInput: { on: true, rate: 0, mult: 1 }, ...o.ops }
 }));
 
 const ROLES = { admin:"Admin", manager:"Production Manager", entry:"Data Entry", billing:"Billing Staff" };
@@ -55,23 +50,23 @@ const USERS = [
 
 const RAW_ORDERS = [
   { id:"O1", orderNumber:"ORD-001", buyerName:"H&M Global",   styleNumber:"ST-4421", itemName:"Men Trousers", color:"Navy",  size:"M", orderQty:2000, deliveryDate:"2026-06-20", status:"In Progress",
-    ops:{ cutting:{on:true,rate:1.5,cont:"Rajan Cutting",mult:1}, fusing:{on:true,rate:0.8,cont:"Kumar Fusing",mult:1}, checkingInput:{on:true,rate:0,cont:"",mult:1}, powerTable:{on:true,rate:0.7,cont:"Power Works",mult:1}, snls:{on:true,rate:0.9,cont:"SNLS Masters",mult:1}, button:{on:true,rate:0.5,cont:"Button Works",mult:8}, bartag:{on:true,rate:0.3,cont:"Button Works",mult:3}, checking:{on:true,rate:0.6,cont:"QC Team",mult:1}, ironing:{on:true,rate:1.2,cont:"Selvam Press",mult:1}, packing:{on:true,rate:2.0,cont:"Packing Co",mult:1} }
+    ops:{ cutting:{on:true,rate:1.5,mult:1}, fusing:{on:true,rate:0.8,mult:1}, checkingInput:{on:true,rate:0,mult:1}, powerTable:{on:true,rate:0.7,mult:1}, snls:{on:true,rate:0.9,mult:1}, button:{on:true,rate:0.5,mult:8}, bartag:{on:true,rate:0.3,mult:3}, checking:{on:true,rate:0.6,mult:1}, ironing:{on:true,rate:1.2,mult:1}, packing:{on:true,rate:2.0,mult:1} }
   },
   { id:"O2", orderNumber:"ORD-002", buyerName:"Zara Exports", styleNumber:"ST-8832", itemName:"Ladies Tops",  color:"White", size:"S", orderQty:1500, deliveryDate:"2026-06-15", status:"Urgent",
-    ops:{ cutting:{on:true,rate:1.2,cont:"Rajan Cutting",mult:1}, fusing:{on:true,rate:0.7,cont:"Kumar Fusing",mult:1}, checkingInput:{on:true,rate:0,cont:"",mult:1}, kaja:{on:true,rate:0.3,cont:"Kaja Works",mult:6}, snls:{on:true,rate:0.8,cont:"SNLS Masters",mult:1}, checking:{on:true,rate:0.5,cont:"QC Team",mult:1}, ironing:{on:true,rate:1.0,cont:"Selvam Press",mult:1}, packing:{on:true,rate:1.8,cont:"Packing Co",mult:1} }
+    ops:{ cutting:{on:true,rate:1.2,mult:1}, fusing:{on:true,rate:0.7,mult:1}, checkingInput:{on:true,rate:0,mult:1}, kaja:{on:true,rate:0.3,mult:6}, snls:{on:true,rate:0.8,mult:1}, checking:{on:true,rate:0.5,mult:1}, ironing:{on:true,rate:1.0,mult:1}, packing:{on:true,rate:1.8,mult:1} }
   },
 ];
 
 const INIT_ORDERS = ensureCheckingInput(RAW_ORDERS);
 
 const INIT_ENTRIES = [
-  {id:"E1",oid:"O1",opid:"cutting",      date:"2026-05-10",qty:2050,cont:"Rajan Cutting",reworkQty:0,reworkRate:0},
-  {id:"E2",oid:"O1",opid:"fusing",       date:"2026-05-11",qty:900, cont:"Kumar Fusing", reworkQty:0,reworkRate:0},
-  {id:"E3",oid:"O1",opid:"checkingInput",date:"2026-05-11",qty:2000,cont:"",             reworkQty:0,reworkRate:0},
-  {id:"E4",oid:"O1",opid:"checking",     date:"2026-05-12",qty:500, cont:"QC Team",      reworkQty:20,reworkRate:2.0},
-  {id:"E5",oid:"O2",opid:"cutting",      date:"2026-05-10",qty:1530,cont:"Rajan Cutting",reworkQty:0,reworkRate:0},
-  {id:"E6",oid:"O2",opid:"fusing",       date:"2026-05-11",qty:700, cont:"Kumar Fusing", reworkQty:0,reworkRate:0},
-  {id:"E7",oid:"O2",opid:"checkingInput",date:"2026-05-11",qty:1400,cont:"",             reworkQty:0,reworkRate:0},
+  {id:"E1",oid:"O1",opid:"cutting",      date:"2026-05-10",qty:2050,reworkQty:0,reworkRate:0},
+  {id:"E2",oid:"O1",opid:"fusing",       date:"2026-05-11",qty:900, reworkQty:0,reworkRate:0},
+  {id:"E3",oid:"O1",opid:"checkingInput",date:"2026-05-11",qty:2000,reworkQty:0,reworkRate:0},
+  {id:"E4",oid:"O1",opid:"checking",     date:"2026-05-12",qty:500, reworkQty:20,reworkRate:2.0},
+  {id:"E5",oid:"O2",opid:"cutting",      date:"2026-05-10",qty:1530,reworkQty:0,reworkRate:0},
+  {id:"E6",oid:"O2",opid:"fusing",       date:"2026-05-11",qty:700, reworkQty:0,reworkRate:0},
+  {id:"E7",oid:"O2",opid:"checkingInput",date:"2026-05-11",qty:1400,reworkQty:0,reworkRate:0},
 ];
 
 // ─── STYLES ──────────────────────────────────────────────────────────────────
@@ -140,7 +135,6 @@ input,select,textarea{padding:9px 12px;border:1px solid var(--border2);border-ra
 input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
 input[type=number]{-moz-appearance:textfield}
 input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
-input:disabled{background:#f8faff;color:var(--ink3);cursor:not-allowed}
 .ferr{font-size:12px;color:var(--red);margin-top:3px}
 .fe{border-color:var(--red)!important}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -165,7 +159,7 @@ input:disabled{background:#f8faff;color:var(--ink3);cursor:not-allowed}
 .mft{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
 .or{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
 .or:last-child{border-bottom:none}
-.on2{font-size:13px;font-weight:500;width:130px;flex-shrink:0}
+.on2{font-size:13px;font-weight:500;width:150px;flex-shrink:0}
 .on2.dis{color:var(--ink4)}
 .tw{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px}
 .toast{background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;font-size:13px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-lg);min-width:240px;animation:tin .2s ease}
@@ -185,13 +179,9 @@ input:disabled{background:#f8faff;color:var(--ink3);cursor:not-allowed}
 .bh{background:var(--ink);color:#fff;padding:16px 20px;border-radius:10px 10px 0 0}
 .brow{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px}
 .bft{display:flex;justify-content:space-between;align-items:center;padding:13px 18px;background:var(--ink);color:#fff;border-radius:0 0 10px 10px}
-/* auto-fill row highlight */
-.auto-row{background:#eff4ff!important}
-.auto-row td{background:#eff4ff!important}
 @media(max-width:768px){.kpi-grid{grid-template-columns:1fr 1fr}.fgrid,.fgrid3{grid-template-columns:1fr}.sb{width:60px}.nav-it span,.sb-sub,.nav-lbl,.sb-logo span,.av-inf{display:none}.sb-logo,.sb-foot{justify-content:center}.content{padding:14px}}
 `;
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2, 9);
 const fmt = (n, d = 2) => (parseFloat(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: d, maximumFractionDigits: d });
 const fq = n => (parseInt(n) || 0).toLocaleString('en-IN');
@@ -210,7 +200,6 @@ function useToast() {
 function Toast({ toasts }) {
   return <div className="tw">{toasts.map(t => <div key={t.id} className={`toast ${t.type==='ok'?'tok':'terr'}`}><span>{t.type==='ok'?'✓':'✕'}</span>{t.msg}</div>)}</div>;
 }
-
 function SI({ value, onChange, type="text", placeholder="", cls="", disabled=false, style={}, onKeyDown }) {
   return <input type={type} value={value??""} onChange={e=>onChange(e.target.value)} placeholder={placeholder} className={cls} disabled={disabled} style={style} onKeyDown={onKeyDown} autoComplete="off"/>;
 }
@@ -229,7 +218,7 @@ function Login({ onLogin }) {
         <div style={{fontSize:13,color:'var(--ink3)',marginTop:4}}>Production &amp; Billing System</div>
       </div>
       {err&&<div className="al alr">⚠ {err}</div>}
-      <div className="fg" style={{marginBottom:12}}><label>Email address</label><SI value={email} onChange={setEmail} placeholder="email@garment.com"/></div>
+      <div className="fg" style={{marginBottom:12}}><label>Email</label><SI value={email} onChange={setEmail} placeholder="email@garment.com"/></div>
       <div className="fg" style={{marginBottom:20}}><label>Password</label><SI type="password" value={pass} onChange={setPass} onKeyDown={e=>e.key==='Enter'&&handle()}/></div>
       <button className="btn bp" style={{width:'100%',justifyContent:'center'}} onClick={handle}>Sign in →</button>
     </div></div>
@@ -240,41 +229,27 @@ function Login({ onLogin }) {
 function Dashboard({ orders, entries }) {
   const today=toStr();
   const gp=(oid,opid)=>entries.filter(e=>e.oid===oid&&e.opid===opid).reduce((s,e)=>s+e.qty,0);
-
-  // For auto ops, qty = checkingInput qty (if enabled)
-  const getEffectiveQty=(o,op)=>{
-    if(op.limType==='auto'){
-      return o.ops[op.id]?.on ? gp(o.id,'checkingInput') : 0;
-    }
-    return gp(o.id,op.id);
-  };
-
+  const getEffQty=(o,op)=>op.limType==='auto'?(o.ops[op.id]?.on?gp(o.id,'checkingInput'):0):gp(o.id,op.id);
   const todayProd=entries.filter(e=>e.date===today).reduce((s,e)=>s+e.qty,0);
   const pending=orders.filter(o=>!['Completed','Cancelled'].includes(o.status)).length;
   const delayed=orders.filter(o=>o.deliveryDate<today&&!['Completed','Cancelled'].includes(o.status)).length;
-
   const weekBill=orders.reduce((sum,o)=>sum+OPS.filter(op=>op.billing&&o.ops[op.id]?.on).reduce((s,op)=>{
-    const cfg=o.ops[op.id];
-    const qty=getEffectiveQty(o,op);
+    const cfg=o.ops[op.id]; const qty=getEffQty(o,op);
     const rework=entries.filter(e=>e.oid===o.id&&e.opid===op.id).reduce((s,e)=>s+(e.reworkQty||0)*(e.reworkRate||0),0);
     return s+qty*(cfg.rate||0)*(cfg.mult||1)+rework;
   },0),0);
-
   const orderProg=orders.map(o=>{
     const en=OPS.filter(op=>o.ops[op.id]?.on&&op.billing);
-    const tot=en.length*o.orderQty;
-    const done=en.reduce((s,op)=>s+getEffectiveQty(o,op),0);
+    const tot=en.length*o.orderQty, done=en.reduce((s,op)=>s+getEffQty(o,op),0);
     return{...o,pct:tot>0?Math.min(100,Math.round(done/tot*100)):0};
   });
-
   const opT=OPS.map(op=>({name:op.name,qty:entries.filter(e=>e.date===today&&e.opid===op.id).reduce((s,e)=>s+e.qty,0)})).filter(o=>o.qty>0);
   const maxT=Math.max(...opT.map(o=>o.qty),1);
-
   return (
     <div>
       <div className="sh"><div><h2>Dashboard</h2><div style={{fontSize:13,color:'var(--ink3)'}}>{new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div></div></div>
       <div className="kpi-grid">
-        <div className="kpi" style={{borderLeft:'3px solid var(--accent)'}}><div className="kl">Today's Production</div><div className="kv">{fq(todayProd)}</div><div className="ks">pieces entered</div></div>
+        <div className="kpi" style={{borderLeft:'3px solid var(--accent)'}}><div className="kl">Today's Production</div><div className="kv">{fq(todayProd)}</div><div className="ks">pieces</div></div>
         <div className="kpi" style={{borderLeft:'3px solid var(--green)'}}><div className="kl">Week Bill (Est.)</div><div className="kv" style={{fontSize:20}}>₹{fmt(weekBill,0)}</div><div className="ks">auto Saturday</div></div>
         <div className="kpi" style={{borderLeft:'3px solid var(--orange)'}}><div className="kl">Active Orders</div><div className="kv">{pending}</div><div className="ks">{orders.length} total</div></div>
         <div className="kpi" style={{borderLeft:'3px solid var(--red)'}}><div className="kl">Delayed Orders</div><div className="kv">{delayed}</div><div className="ks">past delivery</div></div>
@@ -321,7 +296,6 @@ function Orders({ orders, setOrders, toast, onGoOps, entries }) {
   const [fItem,setFItem]=useState(""); const [fColor,setFColor]=useState(""); const [fSize,setFSize]=useState("");
   const [fOQty,setFOQty]=useState(""); const [fDel,setFDel]=useState(""); const [fRem,setFRem]=useState("");
   const [fStat,setFStat]=useState("In Progress"); const [errs,setErrs]=useState({});
-
   const openNew=()=>{setFONo("");setFBuyer("");setFStyle("");setFItem("");setFColor("");setFSize("");setFOQty("");setFDel("");setFRem("");setFStat("In Progress");setEditing(null);setErrs({});setModal(true);};
   const openEdit=o=>{setFONo(o.orderNumber);setFBuyer(o.buyerName);setFStyle(o.styleNumber||"");setFItem(o.itemName);setFColor(o.color||"");setFSize(o.size||"");setFOQty(String(o.orderQty));setFDel(o.deliveryDate);setFRem(o.remarks||"");setFStat(o.status);setEditing(o.id);setErrs({});setModal(true);};
   const validate=()=>{const e={};if(!fONo.trim())e.oNo='Required';if(!fBuyer.trim())e.buyer='Required';if(!fItem.trim())e.item='Required';if(!fOQty||isNaN(+fOQty)||+fOQty<=0)e.oQty='Must be > 0';if(!fDel)e.del='Required';if(orders.some(o=>o.orderNumber===fONo.trim()&&o.id!==editing))e.oNo='Already exists';return e;};
@@ -334,7 +308,6 @@ function Orders({ orders, setOrders, toast, onGoOps, entries }) {
   const del=id=>{if(!confirm("Delete order?"))return;setOrders(prev=>prev.filter(o=>o.id!==id));toast("Deleted","err");};
   const fil=orders.filter(o=>!search||[o.orderNumber,o.buyerName,o.itemName].some(v=>v.toLowerCase().includes(search.toLowerCase())));
   const gCut=oid=>entries.filter(e=>e.oid===oid&&e.opid==='cutting').reduce((s,e)=>s+e.qty,0);
-
   return (
     <div>
       <div className="sh">
@@ -346,22 +319,19 @@ function Orders({ orders, setOrders, toast, onGoOps, entries }) {
           <thead><tr><th>Order No</th><th>Buyer</th><th>Item</th><th>Order Qty</th><th>Cutting Qty</th><th>Delivery</th><th>Status</th><th></th></tr></thead>
           <tbody>
             {fil.length===0&&<tr><td colSpan={8} style={{textAlign:'center',padding:40,color:'var(--ink3)'}}>No orders</td></tr>}
-            {fil.map(o=>{
-              const cq=gCut(o.id);
-              return(<tr key={o.id}>
-                <td><span className="mn" style={{fontWeight:600}}>{o.orderNumber}</span></td>
-                <td>{o.buyerName}</td><td>{o.itemName} • {o.color} • {o.size}</td>
-                <td className="mn">{fq(o.orderQty)}</td>
-                <td className="mn">{cq>0?fq(cq):<span style={{color:'var(--ink4)'}}>—</span>}</td>
-                <td><span className={`badge ${o.deliveryDate<toStr()&&o.status!=='Completed'?'br':'bgr'}`}>{o.deliveryDate}</span></td>
-                <td><span className={`badge ${sbd(o.status)}`}>{o.status}</span></td>
-                <td><div style={{display:'flex',gap:6}}>
-                  <button className="btn bo2 bsm" onClick={()=>onGoOps(o.id)}>⚙ Ops</button>
-                  <button className="btn bgh bsm" onClick={()=>openEdit(o)}>✎</button>
-                  <button className="btn bd bsm" onClick={()=>del(o.id)}>✕</button>
-                </div></td>
-              </tr>);
-            })}
+            {fil.map(o=>{const cq=gCut(o.id);return(<tr key={o.id}>
+              <td><span className="mn" style={{fontWeight:600}}>{o.orderNumber}</span></td>
+              <td>{o.buyerName}</td><td>{o.itemName} • {o.color} • {o.size}</td>
+              <td className="mn">{fq(o.orderQty)}</td>
+              <td className="mn">{cq>0?fq(cq):<span style={{color:'var(--ink4)'}}>—</span>}</td>
+              <td><span className={`badge ${o.deliveryDate<toStr()&&o.status!=='Completed'?'br':'bgr'}`}>{o.deliveryDate}</span></td>
+              <td><span className={`badge ${sbd(o.status)}`}>{o.status}</span></td>
+              <td><div style={{display:'flex',gap:6}}>
+                <button className="btn bo2 bsm" onClick={()=>onGoOps(o.id)}>⚙ Ops</button>
+                <button className="btn bgh bsm" onClick={()=>openEdit(o)}>✎</button>
+                <button className="btn bd bsm" onClick={()=>del(o.id)}>✕</button>
+              </div></td>
+            </tr>);})}
           </tbody>
         </table>
       </div>
@@ -382,9 +352,6 @@ function Orders({ orders, setOrders, toast, onGoOps, entries }) {
                 <div className="fg"><label>Status</label><select value={fStat} onChange={e=>setFStat(e.target.value)}>{['In Progress','Urgent','Completed','On Hold','Cancelled'].map(s=><option key={s}>{s}</option>)}</select></div>
                 <div className="fg full"><label>Remarks</label><SI value={fRem} onChange={setFRem} placeholder="Optional"/></div>
               </div>
-              <div style={{marginTop:10,padding:'10px 14px',background:'var(--accent-light)',borderRadius:8,fontSize:12,color:'var(--accent)'}}>
-                ℹ️ Checking Input is enabled by default. When Checking Input qty is entered, Power Table → Trimmer billing is calculated automatically.
-              </div>
             </div>
             <div className="mft"><button className="btn bo2" onClick={()=>setModal(false)}>Cancel</button><button className="btn bp" onClick={save}>{editing?"Update":"Create"} Order</button></div>
           </div>
@@ -394,7 +361,7 @@ function Orders({ orders, setOrders, toast, onGoOps, entries }) {
   );
 }
 
-// ─── OPERATIONS ──────────────────────────────────────────────────────────────
+// ─── OPERATIONS — No contractor field ────────────────────────────────────────
 function Operations({ orders, setOrders, entries, toast, userRole }) {
   const [oid,setOid]=useState(orders[0]?.id||"");
   const order=orders.find(o=>o.id===oid);
@@ -403,12 +370,7 @@ function Operations({ orders, setOrders, entries, toast, userRole }) {
   const cuttingQty=gp('cutting'), checkingQty=gp('checkingInput');
   const upd=(opid,field,value)=>{if(!isAdmin)return;setOrders(prev=>prev.map(o=>o.id!==oid?o:{...o,ops:{...o.ops,[opid]:{...(o.ops[opid]||{}),[field]:value}}}));};
   if(!order) return <div style={{textAlign:'center',padding:40,color:'var(--ink3)'}}>No orders</div>;
-
-  const getEffectiveQty=(op)=>{
-    if(op.limType==='auto') return checkingQty;
-    return gp(op.id);
-  };
-
+  const getEffQty=op=>op.limType==='auto'?checkingQty:gp(op.id);
   return (
     <div>
       <div className="sh">
@@ -426,45 +388,48 @@ function Operations({ orders, setOrders, entries, toast, userRole }) {
           <div><div style={{fontSize:10,color:'var(--ink3)',marginBottom:3}}>CHECKING INPUT</div><span className="badge bg">{fq(checkingQty)}</span></div>
         </div>
       </div>
-
-      {/* Auto-fill info banner */}
       {checkingQty>0&&<div className="al alb" style={{marginBottom:14}}>
-        ⚡ Checking Input = <strong>{fq(checkingQty)} pcs</strong>. Power Table → Panel Ironing billing is automatically calculated using this quantity.
+        ⚡ Checking Input = <strong>{fq(checkingQty)} pcs</strong>. Power Table → Panel Ironing auto-billed using this quantity.
       </div>}
-
       <div className="card cp">
+        {/* Header row — no contractor column */}
+        <div style={{display:'grid',gridTemplateColumns:'150px 80px 80px 100px 80px',gap:8,marginBottom:8,padding:'0 0 8px',borderBottom:'1px solid var(--border)'}}>
+          {['Operation','Rate (₹)','Multiplier','Billed Amt','Type'].map((h,i)=>(
+            <div key={i} style={{fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'.6px',color:'var(--ink3)'}}>{h}</div>
+          ))}
+        </div>
         {OPS.map(op=>{
-          const cfg=order.ops[op.id]||{on:false,rate:0,cont:'',mult:1};
-          const effectiveQty=getEffectiveQty(op);
-          const billed=effectiveQty*(cfg.rate||0)*(cfg.mult||1);
+          const cfg=order.ops[op.id]||{on:false,rate:0,mult:1};
+          const effQty=getEffQty(op);
+          const billed=effQty*(cfg.rate||0)*(cfg.mult||1);
           const isLocked=op.id==='checkingInput';
           const isAuto=op.limType==='auto';
-
+          const limLabel=op.limType==='none'?'✏️ manual':op.limType==='cutting'?'✂ cutting':op.limType==='auto'?'⚡ auto':op.limType==='checking'?'✅ chk input':'🔒 order';
           return (
             <div key={op.id} className="or" style={isAuto&&cfg.on&&checkingQty>0?{background:'#f8faff'}:{}}>
               <input type="checkbox" checked={!!cfg.on} disabled={!isAdmin||isLocked}
                 onChange={e=>upd(op.id,'on',e.target.checked)}
                 style={{width:16,height:16,cursor:isAdmin&&!isLocked?'pointer':'not-allowed',accentColor:'var(--accent)',flexShrink:0}}/>
-              <div className={`on2 ${!cfg.on?'dis':''}`}>
+              <div className={`on2 ${!cfg.on?'dis':''}`} style={{width:150}}>
                 {op.name}
                 {isAuto&&<span className="badge bb" style={{fontSize:9,marginLeft:4}}>auto</span>}
                 {isLocked&&<span className="badge bg" style={{fontSize:9,marginLeft:4}}>default</span>}
                 {!op.billing&&<span className="badge bgr" style={{fontSize:9,marginLeft:4}}>no bill</span>}
               </div>
-              <div style={{flex:1,minWidth:130}}>
-                <SI disabled={!isAdmin||!cfg.on} placeholder="Contractor" value={cfg.cont||''} onChange={v=>upd(op.id,'cont',v)} style={{opacity:cfg.on&&isAdmin?1:.5}}/>
+              {/* Rate */}
+              {op.billing
+                ?<SI type="number" disabled={!isAdmin||!cfg.on} placeholder="0.00" value={String(cfg.rate||'')} onChange={v=>upd(op.id,'rate',parseFloat(v)||0)} style={{width:80,opacity:cfg.on&&isAdmin?1:.5}}/>
+                :<div style={{width:80}}/>}
+              {/* Multiplier */}
+              {op.extra
+                ?<SI type="number" disabled={!isAdmin||!cfg.on} placeholder={op.extra} value={String(cfg.mult||1)} onChange={v=>upd(op.id,'mult',parseInt(v)||1)} style={{width:80,opacity:cfg.on&&isAdmin?1:.5}}/>
+                :<div style={{width:80,fontSize:11,color:'var(--ink4)',paddingTop:8}}>—</div>}
+              {/* Billed amount */}
+              <div style={{width:100,fontSize:11}}>
+                {cfg.on&&effQty>0&&op.billing&&<span className="badge bg">₹{fmt(billed,2)}</span>}
               </div>
-              {op.billing&&<SI type="number" disabled={!isAdmin||!cfg.on} placeholder="Rate" value={String(cfg.rate||'')} onChange={v=>upd(op.id,'rate',parseFloat(v)||0)} style={{width:80,opacity:cfg.on&&isAdmin?1:.5}}/>}
-              {op.extra&&<SI type="number" disabled={!isAdmin||!cfg.on} placeholder={op.extra} value={String(cfg.mult||1)} onChange={v=>upd(op.id,'mult',parseInt(v)||1)} style={{width:80,opacity:cfg.on&&isAdmin?1:.5}}/>}
-              <div style={{minWidth:140,fontSize:11}}>
-                {cfg.on&&effectiveQty>0&&op.billing&&<>
-                  <div style={{fontSize:10,color:'var(--ink3)',marginBottom:2}}>{isAuto?'Auto: ':''}Qty: {fq(effectiveQty)}</div>
-                  <span className="badge bg">₹{fmt(billed,2)}</span>
-                </>}
-              </div>
-              <div style={{fontSize:10,color:'var(--ink4)',minWidth:80}}>
-                {op.limType==='none'?'✏️ manual':op.limType==='cutting'?'✂ cutting':op.limType==='auto'?'⚡ auto':op.limType==='checking'?'✅ chk input':'🔒 order'}
-              </div>
+              {/* Type */}
+              <div style={{fontSize:10,color:'var(--ink4)',width:80}}>{limLabel}</div>
             </div>
           );
         })}
@@ -474,13 +439,12 @@ function Operations({ orders, setOrders, entries, toast, userRole }) {
   );
 }
 
-// ─── DAILY ENTRY ──────────────────────────────────────────────────────────────
+// ─── DAILY ENTRY — No contractor field ───────────────────────────────────────
 function Production({ orders, entries, setEntries, toast }) {
   const [oid,setOid]=useState(orders[0]?.id||"");
   const [opid,setOpid]=useState("cutting");
   const [date,setDate]=useState(toStr());
   const [qty,setQty]=useState("");
-  const [cont,setCont]=useState("");
   const [rem,setRem]=useState("");
   const [rQty,setRQty]=useState("");
   const [rRate,setRRate]=useState("");
@@ -488,20 +452,17 @@ function Production({ orders, entries, setEntries, toast }) {
   const [tab,setTab]=useState("entry");
 
   const order=orders.find(o=>o.id===oid);
-  // Show all enabled ops in dropdown
   const enOps=order?OPS.filter(op=>order.ops[op.id]?.on):[];
   const selOp=OPS.find(op=>op.id===opid);
-
   const gp=(o,op)=>entries.filter(e=>e.oid===o&&e.opid===op).reduce((s,e)=>s+e.qty,0);
   const cuttingQty=gp(oid,'cutting');
   const checkingQty=gp(oid,'checkingInput');
 
-  // Get limit for validation
   const getLimit=()=>{
     if(!selOp||!order) return null;
     if(selOp.limType==='none')     return null;
     if(selOp.limType==='cutting')  return cuttingQty;
-    if(selOp.limType==='auto')     return null; // auto ops: no manual entry
+    if(selOp.limType==='auto')     return null;
     if(selOp.limType==='checking') return checkingQty;
     if(selOp.limType==='order')    return order.orderQty;
     return null;
@@ -510,27 +471,17 @@ function Production({ orders, entries, setEntries, toast }) {
   const limit=getLimit();
   const produced=gp(oid,opid);
   const balance=limit!=null?limit-produced:null;
-
-  // For auto ops — effective qty is checkingInput qty
-  const isAutoOp = selOp?.limType==='auto';
+  const isAutoOp=selOp?.limType==='auto';
 
   const submit=()=>{
     setErr("");
     const q=parseInt(qty);
     if(!q||q<=0){setErr("Enter valid quantity");return;}
-    if(opid!=='checkingInput'&&!cont.trim()){setErr("Enter contractor name");return;}
-
-    // AUTO ops — cannot be entered manually
-    if(isAutoOp){setErr("This operation is auto-calculated from Checking Input. No manual entry needed.");return;}
-
-    // Prerequisite
+    if(isAutoOp){setErr("This operation is auto-calculated from Checking Input.");return;}
     if(selOp?.limType==='checking'&&checkingQty===0){setErr("Enter Checking Input qty first.");return;}
     if(selOp?.limType==='cutting'&&cuttingQty===0&&opid!=='cutting'){setErr("Enter Cutting qty first.");return;}
-
-    // Balance check
     if(balance!=null&&q>balance){setErr(`Exceeds limit! Balance: ${fq(Math.max(0,balance))} pcs`);return;}
-
-    setEntries(prev=>[...prev,{id:uid(),oid,opid,date,qty:q,cont,rem,reworkQty:parseInt(rQty)||0,reworkRate:parseFloat(rRate)||0}]);
+    setEntries(prev=>[...prev,{id:uid(),oid,opid,date,qty:q,rem,reworkQty:parseInt(rQty)||0,reworkRate:parseFloat(rRate)||0}]);
     setQty("");setRem("");setRQty("");setRRate("");setErr("");
     toast(`✓ ${fq(q)} pcs — ${selOp?.name}`);
   };
@@ -539,34 +490,32 @@ function Production({ orders, entries, setEntries, toast }) {
   const allE=[...entries].sort((a,b)=>b.date.localeCompare(a.date));
   const todayE=entries.filter(e=>e.date===toStr());
 
-  // Compute auto-op bill preview for selected order
   const autoOpBills=order?OPS.filter(op=>op.limType==='auto'&&order.ops[op.id]?.on).map(op=>{
     const cfg=order.ops[op.id];
-    const qty=checkingQty;
-    const total=qty*(cfg.rate||0)*(cfg.mult||1);
-    return{...op,cfg,qty,total};
+    const total=checkingQty*(cfg.rate||0)*(cfg.mult||1);
+    return{...op,cfg,qty:checkingQty,total};
   }).filter(op=>op.qty>0):[];
 
   return (
     <div>
       <div className="sh"><h2>Daily Production Entry</h2></div>
 
-      {/* Auto-fill status banner */}
+      {/* Auto-fill banner */}
       {checkingQty>0&&order&&(
         <div className="card cp" style={{marginBottom:14,borderLeft:'4px solid var(--accent)'}}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
             <span style={{fontSize:20}}>⚡</span>
             <div>
               <div style={{fontWeight:600,fontSize:14}}>Checking Input = {fq(checkingQty)} pcs</div>
-              <div style={{fontSize:12,color:'var(--ink3)'}}>Power Table → Panel Ironing are auto-billed for {fq(checkingQty)} pcs each</div>
+              <div style={{fontSize:12,color:'var(--ink3)'}}>Power Table → Panel Ironing auto-billed for {fq(checkingQty)} pcs each</div>
             </div>
           </div>
           {autoOpBills.length>0&&(
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:8}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:8}}>
               {autoOpBills.map(op=>(
                 <div key={op.id} style={{padding:'8px 12px',background:'var(--accent-light)',borderRadius:8,fontSize:12}}>
                   <div style={{fontWeight:600,color:'var(--accent)'}}>{op.name}</div>
-                  <div style={{color:'var(--ink3)',marginTop:2}}>{fq(op.qty)} pcs × ₹{op.cfg.rate}{op.extra&&op.cfg.mult>1?` × ${op.cfg.mult}`:''}</div>
+                  <div style={{color:'var(--ink3)',marginTop:2}}>{fq(op.qty)} × ₹{op.cfg.rate}{op.extra&&op.cfg.mult>1?` × ${op.cfg.mult}`:''}</div>
                   <div style={{fontWeight:600,color:'var(--green)',marginTop:2}}>₹{fmt(op.total,2)}</div>
                 </div>
               ))}
@@ -591,22 +540,17 @@ function Production({ orders, entries, setEntries, toast }) {
             </div>
             <div className="fg"><label>Operation *</label>
               <select value={opid} onChange={e=>{setOpid(e.target.value);setErr("");}}>
-                {enOps.map(op=>(
-                  <option key={op.id} value={op.id}>
-                    {op.name}{op.limType==='auto'?' (auto)':!op.billing?' (tracking)':''}
-                  </option>
-                ))}
+                {enOps.map(op=><option key={op.id} value={op.id}>{op.name}{op.limType==='auto'?' (auto)':!op.billing?' (tracking)':''}</option>)}
               </select>
             </div>
             <div className="fg"><label>Date *</label><SI type="date" value={date} onChange={setDate}/></div>
 
-            {/* Show auto-fill notice for auto ops */}
             {isAutoOp?(
               <div className="fg full">
-                <div style={{padding:'14px 16px',background:'var(--accent-light)',borderRadius:8,border:'1px solid var(--accent-mid,#bfcfff)'}}>
-                  <div style={{fontWeight:600,color:'var(--accent)',fontSize:13,marginBottom:4}}>⚡ Auto-calculated Operation</div>
+                <div style={{padding:'14px 16px',background:'var(--accent-light)',borderRadius:8}}>
+                  <div style={{fontWeight:600,color:'var(--accent)',fontSize:13,marginBottom:4}}>⚡ Auto-calculated</div>
                   <div style={{fontSize:12,color:'var(--ink3)'}}>
-                    {selOp?.name} billing is automatically set to <strong style={{color:'var(--ink)'}}>{fq(checkingQty)} pcs</strong> (from Checking Input).
+                    {selOp?.name} is auto-billed for <strong style={{color:'var(--ink)'}}>{fq(checkingQty)} pcs</strong> from Checking Input.
                   </div>
                   {checkingQty>0&&order?.ops[opid]?.on&&(
                     <div style={{marginTop:8,padding:'8px 12px',background:'var(--white)',borderRadius:6,fontSize:13}}>
@@ -614,12 +558,11 @@ function Production({ orders, entries, setEntries, toast }) {
                       <span style={{color:'var(--green)',fontWeight:700}}>₹{fmt(checkingQty*(order.ops[opid]?.rate||0)*(order.ops[opid]?.mult||1),2)}</span>
                     </div>
                   )}
-                  {checkingQty===0&&<div className="al aly" style={{margin:'8px 0 0'}}>⚠ Enter Checking Input qty first to see the auto-bill.</div>}
+                  {checkingQty===0&&<div className="al aly" style={{margin:'8px 0 0'}}>⚠ Enter Checking Input qty first.</div>}
                 </div>
               </div>
             ):(
               <>
-                {opid!=='checkingInput'&&<div className="fg"><label>Contractor *</label><SI value={cont} onChange={setCont} placeholder="Contractor name"/></div>}
                 <div className="fg">
                   <label>Quantity * {balance!=null?`(max: ${fq(Math.max(0,balance))})`:''}</label>
                   <SI type="number" value={qty} onChange={setQty} placeholder={balance!=null&&balance>0?String(balance):"Enter qty"} onKeyDown={e=>e.key==='Enter'&&submit()}/>
@@ -636,10 +579,10 @@ function Production({ orders, entries, setEntries, toast }) {
             )}
           </div>
 
-          {/* Balance info for non-auto ops */}
+          {/* Balance panel */}
           {!isAutoOp&&order&&opid&&(
             <div className="ig">
-              <div><div className="il">Limit</div><div className="iv" style={{color:limit==null?'var(--green)':balance!=null&&balance<100?'var(--red)':'var(--ink)'}}>{limit!=null?fq(limit):'∞'}</div></div>
+              <div><div className="il">Limit</div><div className="iv" style={{color:limit==null?'var(--green)':'var(--ink)'}}>{limit!=null?fq(limit):'∞'}</div></div>
               <div><div className="il">Produced</div><div className="iv">{fq(produced)}</div></div>
               <div><div className="il">Balance</div><div className="iv" style={{color:balance==null?'var(--green)':balance<100?'var(--red)':balance<500?'var(--orange)':'var(--green)'}}>{balance!=null?fq(Math.max(0,balance)):'∞'}</div></div>
               <div><div className="il">Progress</div>
@@ -650,13 +593,10 @@ function Production({ orders, entries, setEntries, toast }) {
             </div>
           )}
 
-          {/* Prerequisite warnings */}
-          {selOp?.limType==='checking'&&checkingQty===0&&<div className="al aly">⚠ Enter <strong>Checking Input</strong> first.</div>}
-          {selOp?.limType==='cutting'&&opid!=='cutting'&&cuttingQty===0&&<div className="al aly">⚠ Enter <strong>Cutting</strong> qty first.</div>}
-
+          {selOp?.limType==='checking'&&checkingQty===0&&<div className="al aly">⚠ Enter Checking Input qty first.</div>}
+          {selOp?.limType==='cutting'&&opid!=='cutting'&&cuttingQty===0&&<div className="al aly">⚠ Enter Cutting qty first.</div>}
           {err&&<div className="al alr">⚠ {err}</div>}
           {!isAutoOp&&balance!=null&&balance<=0&&<div className="al aly">⚠ Limit reached for {selOp?.name}.</div>}
-
           {!isAutoOp&&<button className="btn bp" onClick={submit} disabled={balance!=null&&balance<=0}>✓ Save Entry</button>}
         </div>
       )}
@@ -664,26 +604,20 @@ function Production({ orders, entries, setEntries, toast }) {
       {(tab==='today'||tab==='all')&&(
         <div className="card" style={{overflow:'hidden'}}>
           <table>
-            <thead><tr><th>Date</th><th>Order</th><th>Operation</th><th>Type</th><th>Contractor</th><th>Qty</th><th>Rework</th><th></th></tr></thead>
+            <thead><tr><th>Date</th><th>Order</th><th>Operation</th><th>Qty</th><th>Rework</th><th>Remarks</th><th></th></tr></thead>
             <tbody>
-              {(tab==='today'?todayE:allE).length===0&&<tr><td colSpan={8} style={{textAlign:'center',padding:30,color:'var(--ink3)'}}>No entries</td></tr>}
+              {(tab==='today'?todayE:allE).length===0&&<tr><td colSpan={7} style={{textAlign:'center',padding:30,color:'var(--ink3)'}}>No entries</td></tr>}
               {(tab==='today'?todayE:allE).map(e=>{
                 const o=orders.find(x=>x.id===e.oid);
                 const op=OPS.find(x=>x.id===e.opid);
                 const rAmt=(e.reworkQty||0)*(e.reworkRate||0);
-                const tb=op?.limType==='auto'?<span className="badge bb" style={{fontSize:10}}>Auto</span>
-                  :op?.limType==='none'?<span className="badge bg" style={{fontSize:10}}>Manual</span>
-                  :op?.limType==='cutting'?<span className="badge bpu" style={{fontSize:10}}>Cutting</span>
-                  :op?.limType==='checking'?<span className="badge bb" style={{fontSize:10}}>Chk Input</span>
-                  :<span className="badge bo" style={{fontSize:10}}>Order</span>;
                 return(<tr key={e.id}>
                   <td className="mn">{e.date}</td>
                   <td><strong>{o?.orderNumber}</strong></td>
                   <td><span className={`badge ${op?.billing?'bb':'bgr'}`}>{op?.name}</span></td>
-                  <td>{tb}</td>
-                  <td>{e.cont||'—'}</td>
                   <td><strong>{fq(e.qty)}</strong></td>
                   <td style={{fontSize:12,color:'var(--ink3)'}}>{rAmt>0?`₹${fmt(rAmt,2)}`:'—'}</td>
+                  <td style={{fontSize:12,color:'var(--ink3)'}}>{e.rem||'—'}</td>
                   <td><button className="btn bd bsm" onClick={()=>delE(e.id)}>✕</button></td>
                 </tr>);
               })}
@@ -700,42 +634,36 @@ function Billing({ orders, entries, toast }) {
   const [bills,setBills]=useState([]); const [generated,setGenerated]=useState(false); const [weekOff,setWeekOff]=useState(0);
   const getWeek=off=>{const now=new Date();now.setDate(now.getDate()+off*7);const day=now.getDay();const mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1));const sat=new Date(mon);sat.setDate(mon.getDate()+5);return{s:mon.toISOString().split('T')[0],e:sat.toISOString().split('T')[0]};};
   const {s:ws,e:we}=getWeek(weekOff);
-
   const generate=()=>{
     const lines=[];
     orders.forEach(o=>{
       OPS.filter(op=>op.billing&&o.ops[op.id]?.on).forEach(op=>{
         const cfg=o.ops[op.id];
         let qty=0, rework=0;
-
         if(op.limType==='auto'){
-          // AUTO ops: qty = total checkingInput entries in this week
           qty=entries.filter(e=>e.oid===o.id&&e.opid==='checkingInput'&&e.date>=ws&&e.date<=we).reduce((s,e)=>s+e.qty,0);
-          // If no weekly entry, use total checkingInput (all time) as fallback
           if(qty===0) qty=entries.filter(e=>e.oid===o.id&&e.opid==='checkingInput').reduce((s,e)=>s+e.qty,0);
         } else {
           const wE=entries.filter(e=>e.oid===o.id&&e.opid===op.id&&e.date>=ws&&e.date<=we);
           qty=wE.reduce((s,e)=>s+e.qty,0);
           rework=wE.reduce((s,e)=>s+(e.reworkQty||0)*(e.reworkRate||0),0);
         }
-
         if(!qty&&!rework) return;
         const total=qty*(cfg.rate||0)*(cfg.mult||1)+rework;
-        lines.push({oNo:o.orderNumber,buyer:o.buyerName,opName:op.name,cont:cfg.cont,qty,rate:cfg.rate||0,mult:cfg.mult||1,rework,total,hasExtra:!!op.extra,isAuto:op.limType==='auto'});
+        lines.push({oNo:o.orderNumber,buyer:o.buyerName,opName:op.name,qty,rate:cfg.rate||0,mult:cfg.mult||1,rework,total,hasExtra:!!op.extra,isAuto:op.limType==='auto'});
       });
     });
-
+    // Group by ORDER (no contractor grouping)
     const groups={};
-    lines.forEach(l=>{if(!groups[l.cont])groups[l.cont]={items:[],total:0};groups[l.cont].items.push(l);groups[l.cont].total+=l.total;});
-    const nb=Object.entries(groups).map(([cont,d])=>({id:uid(),billNumber:`BILL-${we.slice(0,7)}-${cont.replace(/[^a-z0-9]/gi,'').slice(0,5).toUpperCase()}`,ws,we,cont,items:d.items,total:d.total}));
+    lines.forEach(l=>{if(!groups[l.oNo])groups[l.oNo]={items:[],total:0,buyer:l.buyer};groups[l.oNo].items.push(l);groups[l.oNo].total+=l.total;});
+    const nb=Object.entries(groups).map(([oNo,d])=>({id:uid(),billNumber:`BILL-${we.slice(0,7)}-${oNo.replace(/[^a-z0-9]/gi,'').toUpperCase()}`,ws,we,oNo,buyer:d.buyer,items:d.items,total:d.total}));
     setBills(nb);setGenerated(true);toast(`${nb.length} bill(s) generated`);
   };
-
   const gt=bills.reduce((s,b)=>s+b.total,0);
   return (
     <div>
       <div className="sh">
-        <div><h2>Weekly Bills</h2><div style={{fontSize:13,color:'var(--ink3)'}}>Auto ops use Checking Input qty for billing</div></div>
+        <div><h2>Weekly Bills</h2><div style={{fontSize:13,color:'var(--ink3)'}}>Grouped by order</div></div>
         <div style={{display:'flex',gap:8,alignItems:'center'}}>
           <button className="btn bo2 bsm" onClick={()=>setWeekOff(w=>w-1)}>← Prev</button>
           <span className="badge bb">{ws} → {we}</span>
@@ -756,19 +684,18 @@ function Billing({ orders, entries, toast }) {
               <div><div style={{fontSize:11,opacity:.5,marginBottom:3}}>BILL NO</div><div style={{fontSize:16,fontWeight:700,fontFamily:'DM Mono,monospace'}}>{bill.billNumber}</div></div>
               <div style={{textAlign:'right'}}><div style={{fontSize:11,opacity:.5,marginBottom:3}}>TOTAL</div><div style={{fontSize:20,fontWeight:700,fontFamily:'DM Mono,monospace'}}>₹{fmt(bill.total,2)}</div></div>
             </div>
-            <div style={{fontSize:12,opacity:.6,marginTop:8}}>{bill.cont} • {bill.ws} to {bill.we}</div>
+            <div style={{fontSize:12,opacity:.6,marginTop:8}}>{bill.oNo} • {bill.buyer} • {bill.ws} to {bill.we}</div>
           </div>
           {bill.items.map((item,i)=>(
             <div key={i} className="brow" style={item.isAuto?{background:'#f8faff'}:{}}>
               <div>
                 <div style={{fontWeight:500}}>{item.opName}{item.isAuto&&<span className="badge bb" style={{fontSize:10,marginLeft:6}}>auto</span>}</div>
-                <div style={{fontSize:11,color:'var(--ink3)'}}>{item.oNo} • {item.buyer}</div>
               </div>
               <div style={{fontSize:11,color:'var(--ink3)',textAlign:'right'}}>{fq(item.qty)} × ₹{item.rate}{item.hasExtra&&item.mult>1?` × ${item.mult}`:''}{item.rework>0&&<div>+ Rework ₹{fmt(item.rework,2)}</div>}</div>
               <div style={{fontWeight:600,fontFamily:'DM Mono,monospace',minWidth:80,textAlign:'right'}}>₹{fmt(item.total,2)}</div>
             </div>
           ))}
-          <div className="bft"><span>{bill.cont}</span><span style={{fontSize:18,fontWeight:700,fontFamily:'DM Mono,monospace'}}>₹{fmt(bill.total,2)}</span></div>
+          <div className="bft"><span>{bill.oNo} — {bill.buyer}</span><span style={{fontSize:18,fontWeight:700,fontFamily:'DM Mono,monospace'}}>₹{fmt(bill.total,2)}</span></div>
         </div>
       ))}
     </div>
@@ -779,7 +706,6 @@ function Billing({ orders, entries, toast }) {
 function Reports({ orders, entries }) {
   const [tab,setTab]=useState("pending");
   const gp=(oid,opid)=>entries.filter(e=>e.oid===oid&&e.opid===opid).reduce((s,e)=>s+e.qty,0);
-
   const pendingRows=[];
   orders.forEach(o=>{
     const cq=gp(o.id,'cutting'), ckq=gp(o.id,'checkingInput');
@@ -788,21 +714,16 @@ function Reports({ orders, entries }) {
       if(lim==null)return;
       const prod=op.limType==='auto'?ckq:gp(o.id,op.id);
       const bal=lim-prod;
-      if(bal>0) pendingRows.push({oNo:o.orderNumber,buyer:o.buyerName,opName:op.name,cont:o.ops[op.id].cont,lim,prod,bal,pct:lim>0?Math.round(prod/lim*100):0,isAuto:op.limType==='auto'});
+      if(bal>0) pendingRows.push({oNo:o.orderNumber,buyer:o.buyerName,opName:op.name,lim,prod,bal,pct:lim>0?Math.round(prod/lim*100):0,isAuto:op.limType==='auto'});
     });
   });
-
   const orderStatus=orders.map(o=>{
     const cq=gp(o.id,'cutting');
     const en=OPS.filter(op=>o.ops[op.id]?.on&&op.billing);
     const tot=en.length*o.orderQty;
-    const done=en.reduce((s,op)=>{
-      if(op.limType==='auto') return s+gp(o.id,'checkingInput');
-      return s+gp(o.id,op.id);
-    },0);
+    const done=en.reduce((s,op)=>op.limType==='auto'?s+gp(o.id,'checkingInput'):s+gp(o.id,op.id),0);
     return{...o,pct:tot>0?Math.min(100,Math.round(done/tot*100)):0,cuttingQty:cq,done};
   });
-
   return (
     <div>
       <div className="sh"><h2>Reports</h2></div>
@@ -815,13 +736,12 @@ function Reports({ orders, entries }) {
           <div style={{marginBottom:10}}><span className="badge bo">{pendingRows.length} ops pending</span></div>
           <div className="card" style={{overflow:'hidden'}}>
             <table>
-              <thead><tr><th>Order</th><th>Operation</th><th>Contractor</th><th>Limit</th><th>Done</th><th>Balance</th><th>%</th></tr></thead>
+              <thead><tr><th>Order</th><th>Operation</th><th>Limit</th><th>Done</th><th>Balance</th><th>%</th></tr></thead>
               <tbody>
                 {pendingRows.map((r,i)=>(
                   <tr key={i} style={r.isAuto?{background:'#f8faff'}:{}}>
                     <td className="mn" style={{fontWeight:600}}>{r.oNo}</td>
                     <td><span className="badge bb">{r.opName}</span>{r.isAuto&&<span className="badge bb" style={{fontSize:9,marginLeft:4}}>auto</span>}</td>
-                    <td style={{fontSize:12}}>{r.cont}</td>
                     <td className="mn">{fq(r.lim)}</td><td className="mn">{fq(r.prod)}</td>
                     <td><span className={`badge ${r.bal<200?'br':r.bal<500?'bo':'bg'}`}>{fq(r.bal)}</span></td>
                     <td style={{width:100}}><div className="prog"><div className="pf" style={{width:r.pct+'%',background:r.pct>80?'#16a34a':'var(--accent)'}}/></div><div style={{fontSize:10,color:'var(--ink3)',marginTop:2}}>{r.pct}%</div></td>
@@ -842,7 +762,7 @@ function Reports({ orders, entries }) {
                 <td>{o.buyerName}</td><td className="mn">{fq(o.orderQty)}</td><td className="mn">{fq(o.cuttingQty)}</td>
                 <td><span className={`badge ${o.deliveryDate<toStr()&&o.status!=='Completed'?'br':'bgr'}`}>{o.deliveryDate}</span></td>
                 <td><span className={`badge ${sbd(o.status)}`}>{o.status}</span></td>
-                <td style={{width:140}}><div className="prog"><div className="pf" style={{width:o.pct+'%',background:o.pct>80?'#16a34a':'var(--accent)'}}/></div><div style={{fontSize:10,color:'var(--ink3)',marginTop:2}}>{o.pct}% • {fq(o.done)} pcs</div></td>
+                <td style={{width:140}}><div className="prog"><div className="pf" style={{width:o.pct+'%',background:o.pct>80?'#16a34a':'var(--accent)'}}/></div><div style={{fontSize:10,color:'var(--ink3)',marginTop:2}}>{o.pct}%</div></td>
               </tr>
             ))}</tbody>
           </table>
@@ -936,3 +856,4 @@ export default function App() {
     </>
   );
 }
+
